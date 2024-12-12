@@ -1,0 +1,41 @@
+research_flights_task:
+  description: >
+    Research flights based on the following request: {message}
+    Current date: {timestamp}
+
+    1. Extract departure and destination cities from the message
+    2. Identify potential travel dates 
+    3. Search for available flights
+    4. Consider both direct and connecting flights
+    5. Compare prices and durations
+    6. Provide detailed flight options with prices
+
+    Format the response in a clear, structured way.
+
+research_hotels_task:
+  description: >
+    Research hotels based on the following request: {message}
+    Current date: {timestamp}
+
+    1. Identify the destination city
+    2. Determine the stay duration
+    3. Search for available hotels 
+    4. Consider the location and proximity to attractions
+    5. Compare prices and amenities
+    6. Provide detailed hotel options with prices
+
+    Format the response in a clear, structured way.
+
+create_itinerary_task:
+  description: >
+    Create a complete travel itinerary based on: {message}
+    Current date: {timestamp}
+
+    1. Create a day-by-day plan
+    2. Include local attractions and activities
+    3. Suggest restaurants and dining options
+    4. Consider travel times between locations
+    5. Add estimated costs for activities
+    6. Include travel tips and recommendations
+
+    Format the response as an HTML travel plan using the provided CSS classes.

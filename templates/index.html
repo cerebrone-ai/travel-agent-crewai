@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Travel Planner</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .chat-container {
+            height: calc(100vh - 200px);
+        }
+        .message {
+            max-width: 80%;
+            margin: 10px;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: auto;
+        }
+        .assistant-message {
+            background-color: #f5f5f5;
+            margin-right: auto;
+        }
+        .travel-plan {
+            max-width: 800px;
+            margin: 0 auto;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .travel-plan h2 {
+            color: #2b6cb0;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .travel-plan h3 {
+            color: #2d3748;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .day-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .day-card h4 {
+            color: #2b6cb0;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .flight-info, .hotel-info {
+            background: #f7fafc;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 0.5rem 0;
+        }
+
+        .activities-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .activities-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .activities-list li:last-child {
+            border-bottom: none;
+        }
+
+        .amenities-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .amenity-tag {
+            background: #e2e8f0;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+        }
+
+        .total-cost {
+            background: #ebf8ff;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        /* Add loading animation */
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .loading::after {
+            content: "...";
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% { content: "."; }
+            33% { content: ".."; }
+            66% { content: "..."; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold text-center mb-8">AI Travel Planner</h1>
+        
+        <div class="bg-white rounded-lg shadow-lg p-4">
+            <div id="chat-container" class="chat-container overflow-y-auto mb-4">
+                <div class="assistant-message message">
+                    Hello! I'm your AI travel assistant. To help you plan your trip, please provide:
+                    <ul class="list-disc ml-4 mt-2">
+                        <li>Your departure city</li>
+                        <li>Your destination</li>
+                        <li>Travel dates</li>
+                        <li>Budget level (budget/moderate/luxury)</li>
+                        <li>Any specific preferences or interests</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="flex gap-2">
+                <input type="text" id="user-input" 
+                    class="flex-1 p-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                    placeholder="Example: I want to travel from New York to Paris for 5 days in July, moderate budget">
+                <button onclick="sendMessage()" 
+                    class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                    Send
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // Add user message to chat
+            addMessage(message, true);
+            userInput.value = '';
+
+            // Show loading indicator
+            const loadingDiv = addMessage('<div class="loading">Planning your trip</div>', false);
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message }),
+                });
+
+                const data = await response.json();
+                
+                // Remove loading indicator
+                loadingDiv.remove();
+                
+                if (data.error) {
+                    addMessage('Sorry, there was an error: ' + data.error, false);
+                } else {
+                    const formattedResponse = formatTravelPlan(data.response);
+                    addMessage(formattedResponse, false);
+                }
+            } catch (error) {
+                loadingDiv.remove();
+                addMessage('Sorry, there was an error processing your request.', false);
+            }
+        }
+
+        function formatTravelPlan(plan) {
+            // Parse the JSON if it's a string
+            const travelPlan = typeof plan === 'string' ? JSON.parse(plan) : plan;
+
+            let html = `
+                <div class="travel-plan">
+                    <h2>✈️ ${travelPlan.name}</h2>
+                    <p class="text-lg mb-4">From ${travelPlan.origin} to ${travelPlan.destination}</p>
+            `;
+
+            // Iterate through each day
+            travelPlan.day_plans.forEach((day, index) => {
+                html += `
+                    <div class="day-card">
+                        <h4>Day ${index + 1} - ${day.date}</h4>
+                `;
+
+                // Flight information if available
+                if (day.flight) {
+                    html += `
+                        <div class="flight-info">
+                            <p class="font-semibold">✈️ Flight Details:</p>
+                            <p>${day.flight.airline} ${day.flight.flight_number}</p>
+                            <p>Departure: ${day.flight.departure_time} | Arrival: ${day.flight.arrival_time}</p>
+                            <p>Duration: ${day.flight.duration} | Price: ₹${day.flight.price}</p>
+                        </div>
+                    `;
+                }
+
+                // Hotel information if available
+                if (day.hotel) {
+                    html += `
+                        <div class="hotel-info">
+                            <p class="font-semibold">🏨 Hotel:</p>
+                            <p>${day.hotel.name}</p>
+                            <p>Rating: ${day.hotel.rating}/5.0 | Price: ₹${day.hotel.price_per_night}/night</p>
+                            <p>Check-in: ${day.hotel.check_in} | Check-out: ${day.hotel.check_out}</p>
+                            <div class="amenities-list mt-2">
+                                ${day.hotel.amenities.map(amenity => `
+                                    <span class="amenity-tag">${amenity}</span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Activities
+                html += `
+                    <div class="mt-4">
+                        <p class="font-semibold">📅 Activities:</p>
+                        <ul class="activities-list">
+                            ${day.activities.map(activity => `
+                                <li>${activity}</li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+
+                // Restaurants if available
+                if (day.restaurants && day.restaurants.length > 0) {
+                    html += `
+                        <div class="mt-4">
+                            <p class="font-semibold">🍽️ Dining:</p>
+                            <ul class="activities-list">
+                                ${day.restaurants.map(restaurant => `
+                                    <li>${restaurant}</li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                html += `</div>`;
+            });
+
+            // Total cost
+            html += `
+                <div class="total-cost">
+                    Total Estimated Cost: ₹${travelPlan.total_cost.toLocaleString()}
+                </div>
+            </div>`;
+
+            return html;
+        }
+
+        function addMessage(text, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
+            if (isUser) {
+                messageDiv.textContent = text;
+            } else {
+                messageDiv.innerHTML = text;
+            }
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return messageDiv;
+        }
+    </script>
+</body>
+</html>
